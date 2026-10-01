@@ -15,4 +15,4 @@ Odoo serves as the primary source of truth for user identities, while AssoConnec
 ## Security & Data Privacy (Zero Data Retention)
 Data privacy is paramount. 
 - Input files uploaded via the web interface are temporarily loaded into Google Sheets solely for programmatic parsing.
-- Immediately after reading, these temporary Google Sheet files are **explicitly marked as trashed** (`setTrashed(true)`), ensuring no persistent copies or residual sensitive data remain in Google Drive.
+- Immediately after reading, these temporary Google Sheet files are **permanently deleted** (`Drive.Files.remove`), ensuring no persistent copies or residual sensitive data remain in Google Drive.

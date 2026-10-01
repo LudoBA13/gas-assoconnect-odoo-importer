@@ -34,8 +34,8 @@ function processImport(odooBase64, odooName, odooMime, assoBase64, assoName, ass
 		const sheet = ss.getSheets()[0];
 		const assoData = sheet.getDataRange().getValues();
 		
-		// Immediately trash temporary AssoConnect spreadsheet for zero retention
-		DriveApp.getFileById(assoFileId).setTrashed(true);
+		// Immediately delete temporary AssoConnect spreadsheet permanently for zero retention
+		Drive.Files.remove(assoFileId);
 		assoFileId = null;
 		
 		if (!assoData || assoData.length < 1)
@@ -169,7 +169,7 @@ function processImport(odooBase64, odooName, odooMime, assoBase64, assoName, ass
 		{
 			try
 			{
-				DriveApp.getFileById(assoFileId).setTrashed(true);
+				Drive.Files.remove(assoFileId);
 			}
 			catch (e)
 			{
