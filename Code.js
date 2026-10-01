@@ -54,10 +54,11 @@ function processImport(odooBase64, odooName, odooMime, assoBase64, assoName, ass
 	{
 		const row = assoData[r];
 		const email = String(row[assoEmailIdx]).trim().toLowerCase();
-		if (email !== '')
+		if (email === '')
 		{
-			assoUserMap[email] = row;
+			continue;
 		}
+		assoUserMap[email] = row;
 	}
 	
 	const insertRows = [];
@@ -77,39 +78,38 @@ function processImport(odooBase64, odooName, odooMime, assoBase64, assoName, ass
 		}
 		
 		const assoRow = assoUserMap[emailKey];
-		
 		if (!assoRow)
 		{
-			// No match in AssoConnect -> Insert
 			insertRows.push(odooRow);
+			continue;
+		}
+		
+		// Match found -> check if any value differs in Odoo fields
+		let isDifferent = false;
+		for (const header in odooHeaderMap)
+		{
+			const odooColIdx = odooHeaderMap[header];
+			const assoColIdx = assoHeaderMap[header];
+			
+			const odooVal = String(odooRow[odooColIdx] !== undefined ? odooRow[odooColIdx] : '').trim();
+			const assoVal = String(assoRow[assoColIdx] !== undefined ? assoRow[assoColIdx] : '').trim();
+			
+			if (odooVal === assoVal)
+			{
+				continue;
+			}
+			
+			isDifferent = true;
+			break;
+		}
+		
+		if (isDifferent)
+		{
+			updateRows.push(odooRow);
 		}
 		else
 		{
-			// Match found -> check if any value differs in Odoo fields
-			let isDifferent = false;
-			for (const header in odooHeaderMap)
-			{
-				const odooColIdx = odooHeaderMap[header];
-				const assoColIdx = assoHeaderMap[header];
-				
-				const odooVal = String(odooRow[odooColIdx] !== undefined ? odooRow[odooColIdx] : '').trim();
-				const assoVal = String(assoRow[assoColIdx] !== undefined ? assoRow[assoColIdx] : '').trim();
-				
-				if (odooVal !== assoVal)
-				{
-					isDifferent = true;
-					break;
-				}
-			}
-			
-			if (isDifferent)
-			{
-				updateRows.push(odooRow);
-			}
-			else
-			{
-				unchangedCount++;
-			}
+			unchangedCount++;
 		}
 	}
 	
