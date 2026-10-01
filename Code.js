@@ -202,11 +202,11 @@ function escapeCsvRow(row)
 	for (let i = 0; i < row.length; i++)
 	{
 		let val = String(row[i] !== undefined && row[i] !== null ? row[i] : '');
-		if (val.includes('"') || val.includes(',') || val.includes('\n') || val.includes('\r'))
+		if (val.includes('"') || val.includes('\t') || val.includes('\n') || val.includes('\r'))
 		{
 			val = '"' + val.replace(/"/g, '""') + '"';
 		}
 		escaped.push(val);
 	}
-	return escaped.join(',');
+	return escaped.join('\t');
 }
