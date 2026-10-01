@@ -148,14 +148,14 @@ function parseXlsxFile(base64Data, mimeType, fileName)
 {
 	const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, fileName);
 	const resource = {
-		title: 'TEMP_ASSO_' + new Date().getTime(),
+		name: 'TEMP_ASSO_' + new Date().getTime(),
 		mimeType: MimeType.GOOGLE_SHEETS
 	};
 	
 	let fileId = null;
 	try
 	{
-		const convertedFile = Drive.Files.insert(resource, blob, { convertToGoogleSheets: true });
+		const convertedFile = Drive.Files.create(resource, blob, { convertToGoogleSheets: true });
 		fileId = convertedFile.id;
 		
 		const ss = SpreadsheetApp.openById(fileId);
@@ -175,7 +175,7 @@ function parseXlsxFile(base64Data, mimeType, fileName)
 		{
 			try
 			{
-				Drive.Files.remove(fileId);
+				Drive.Files.delete(fileId);
 			}
 			catch (e)
 			{
