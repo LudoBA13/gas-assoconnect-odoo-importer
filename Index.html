@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Odoo vers AssoConnect Importer</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+	<style>
+		body
+		{
+			padding: 2rem 1rem;
+		}
+		.container
+		{
+			max-width: 900px;
+		}
+		textarea
+		{
+			font-family: monospace;
+			font-size: 0.85rem;
+			height: 200px;
+		}
+		#loading
+		{
+			display: none;
+			text-align: center;
+			margin: 1rem 0;
+		}
+		#error-container
+		{
+			display: none;
+			color: #b71c1c;
+			background: #ffebee;
+			padding: 1rem;
+			border-radius: 4px;
+			margin-bottom: 1rem;
+		}
+		#stats-container
+		{
+			display: none;
+			margin-bottom: 1rem;
+		}
+	</style>
+</head>
+<body>
+	<main class="container">
+		<header>
+			<h1>Synchronisation Odoo &rarr; AssoConnect</h1>
+			<p>Importez vos exports de données utilisateurs (Odoo .csv et AssoConnect .xlsx) pour générer les listes d'insertion et de mise à jour.</p>
+		</header>
+
+		<div id="error-container"></div>
+		
+		<div id="stats-container">
+			<article>
+				<header><strong>Rapport de synchronisation</strong></header>
+				<ul id="stats-list" style="margin-bottom: 0;"></ul>
+			</article>
+		</div>
+
+		<form id="import-form">
+			<div class="grid">
+				<label>
+					Fichier AssoConnect (.xlsx)
+					<input type="file" id="asso-file" accept=".xlsx" required>
+				</label>
+				<label>
+					Fichier Odoo (.csv)
+					<input type="file" id="odoo-file" accept=".csv" required>
+				</label>
+			</div>
+			
+			<button type="submit" id="submit-btn">Traiter les fichiers</button>
+		</form>
+
+		<div id="loading" aria-busy="true">Traitement en cours et sécurisation des données...</div>
+
+		<section id="results" style="margin-top: 2rem;">
+			<h2>Résultats</h2>
+			
+			<label>
+				<strong>Sortie "Insertion" (Utilisateurs Odoo absents dans AssoConnect)</strong>
+				<textarea id="insert-output" readonly placeholder="Les données à insérer s'afficheront ici..."></textarea>
+				<button type="button" class="secondary outline" onclick="copyToClipboard('insert-output')">Copier l'insertion</button>
+			</label>
+
+			<label style="margin-top: 1.5rem;">
+				<strong>Sortie "Mise à jour" (Utilisateurs modifiés dans Odoo)</strong>
+				<textarea id="update-output" readonly placeholder="Les données à mettre à jour s'afficheront ici..."></textarea>
+				<button type="button" class="secondary outline" onclick="copyToClipboard('update-output')">Copier la mise à jour</button>
+			</label>
+		</section>
+	</main>
+
+	<script>
+		document.getElementById('import-form').addEventListener('submit', function(e)
+		{
+			e.preventDefault();
+			
+			const assoFileInput = document.getElementById('asso-file');
+			const odooFileInput = document.getElementById('odoo-file');
+			const errorContainer = document.getElementById('error-container');
+			const statsContainer = document.getElementById('stats-container');
+			const loading = document.getElementById('loading');
+			const submitBtn = document.getElementById('submit-btn');
+			
+			errorContainer.style.display = 'none';
+			errorContainer.textContent = '';
+			statsContainer.style.display = 'none';
+			loading.style.display = 'block';
+			submitBtn.setAttribute('disabled', 'true');
+			
+			const assoFile = assoFileInput.files[0];
+			const odooFile = odooFileInput.files[0];
+			
+			if (!assoFile || !odooFile)
+			{
+				errorContainer.textContent = 'Veuillez sélectionner les deux fichiers.';
+				errorContainer.style.display = 'block';
+				loading.style.display = 'none';
+				submitBtn.removeAttribute('disabled');
+				return;
+			}
+			
+			readFileAsBase64(odooFile, function(odooBase64)
+			{
+				readFileAsBase64(assoFile, function(assoBase64)
+				{
+					google.script.run
+						.withSuccessHandler(function(result)
+						{
+							loading.style.display = 'none';
+							submitBtn.removeAttribute('disabled');
+							
+							document.getElementById('insert-output').value = result.insertOutput;
+							document.getElementById('update-output').value = result.updateOutput;
+							
+							const statsList = document.getElementById('stats-list');
+							statsList.innerHTML = 
+								'<li>Lignes Odoo analysées : ' + result.stats.totalOdoo + '</li>' +
+								'<li>Lignes AssoConnect analysées : ' + result.stats.totalAsso + '</li>' +
+								'<li>À insérer : ' + result.stats.inserted + '</li>' +
+								'<li>À mettre à jour : ' + result.stats.updated + '</li>' +
+								'<li>Inchangés : ' + result.stats.unchanged + '</li>';
+							statsContainer.style.display = 'block';
+						})
+						.withFailureHandler(function(error)
+						{
+							loading.style.display = 'none';
+							submitBtn.removeAttribute('disabled');
+							errorContainer.textContent = 'Erreur : ' + error.message;
+							errorContainer.style.display = 'block';
+						})
+						.processImport(odooBase64, odooFile.name, odooFile.type, assoBase64, assoFile.name, assoFile.type);
+				});
+			});
+		});
+		
+		function readFileAsBase64(file, callback)
+		{
+			const reader = new FileReader();
+			reader.onload = function(e)
+			{
+				const base64Data = e.target.result.split(',')[1];
+				callback(base64Data);
+			};
+			reader.onerror = function(e)
+			{
+				const errorContainer = document.getElementById('error-container');
+				errorContainer.textContent = 'Erreur lors de la lecture du fichier : ' + file.name;
+				errorContainer.style.display = 'block';
+			};
+			reader.readAsDataURL(file);
+		}
+		
+		function copyToClipboard(elementId)
+		{
+			const textarea = document.getElementById(elementId);
+			textarea.select();
+			document.execCommand('copy');
+			alert('Copié dans le presse-papier !');
+		}
+	</script>
+</body>
+</html>

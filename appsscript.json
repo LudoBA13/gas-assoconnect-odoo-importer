@@ -1,0 +1,17 @@
+{
+	"timeZone": "Europe/Paris",
+	"dependencies": {
+		"enabledAdvancedServices": [
+			{
+				"userSymbol": "Drive",
+				"serviceId": "drive",
+				"version": "v2"
+			}
+		]
+	},
+	"webapp": {
+		"executeAs": "USER_DEPLOYING",
+		"access": "ANYONE"
+	},
+	"exceptionLogging": "STACKDRIVER"
+}
