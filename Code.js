@@ -134,7 +134,7 @@ function parseCsvFile(base64Data, mimeType, fileName)
 {
 	const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, fileName);
 	const csvString = blob.getDataAsString();
-	const data = Utilities.parseCsv(csvString);
+	const data = Utilities.parseCsv(csvString, ';');
 	
 	if (!data || data.length < 1)
 	{
